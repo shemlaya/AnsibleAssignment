@@ -1,0 +1,45 @@
+---
+### Installing and configuring HAProxy on server A and SSL key ###
+- hosts: A
+  become: yes
+  become_method: sudo
+  vars:
+    server_hostname: ansibletask.hopto.org
+    my_email: yshmilon@gmail.com
+    lets_path: /etc/letsencrypt/live/ansibletask.hopto.org
+  tasks:
+    - name: Adds certbot repo
+      apt_repository:
+        repo: 'ppa:certbot/certbot'
+    
+    - name: Install HAProxy and Certbot
+      apt:
+        name: ['haproxy', 'certbot']
+        update_cache: yes
+      
+    - name: Stopping HAProxy
+      service: name=haproxy state=stopped
+    
+    - name: Creating certificate with certbot
+      command: certbot certonly --standalone --preferred-challenges http --http-01-port 80 --agree-tos -n -m yshmilon@gmail.com -d ansibletask.hopto.org
+    
+    - name: Create dir for the combined key
+      file:
+        path: /etc/haproxy/certs/
+        state: directory
+    
+    - name: Combine fullchain.pem and privkey.pem
+      shell: cat {{ lets_path }}/fullchain.pem {{ lets_path }}/privkey.pem > /etc/haproxy/certs/ansibletask.hopto.org.pem
+
+    - name: Securing the key
+      file:
+        path: /etc/haproxy/certs
+        mode: "go-rwx"
+    
+    - name: Copy HAProxy.cfg file to the server
+      copy: 
+        src: /home/shemlaya/haproxy.cfg
+        dest: /etc/haproxy/
+    
+    - name: Starting HAProxy again
+      service: name=haproxy state=started

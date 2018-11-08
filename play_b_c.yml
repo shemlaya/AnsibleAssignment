@@ -1,0 +1,33 @@
+---
+
+### Installing and configuring nginx website on servers B and C ###
+- hosts: B_C
+  become: yes
+  become_method: sudo
+  
+  tasks:
+  - name: installing nginx
+    apt:
+        name: nginx
+        update_cache: yes
+  
+  - name: Copy the nginx site config file
+    copy:
+        src: /home/shemlaya/static_site.cfg
+        dest: /etc/nginx/sites-available/static_site.cfg
+  
+  - name: create symlink
+    file:
+        src: /etc/nginx/sites-available/static_site.cfg
+        dest: /etc/nginx/sites-enabled/default
+        state: link
+  
+  - name: Copy the content of the web site
+    copy:
+        src: /home/shemlaya/nginx_site/
+        dest: /home/ubuntu/static-site
+  
+  - name: Restart nginx
+    service:
+        name: nginx
+        state: restarted
